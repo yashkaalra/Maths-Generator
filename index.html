@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Question Paper Generator – ICSE Class 8 &amp; CBSE Class 9</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',sans-serif;background:#f0f2f5;display:flex;height:100vh;overflow:hidden}
@@ -1297,123 +1298,40 @@ function selNone(){getCurrentChapters().forEach((_,i)=>{const el=document.getEle
 
 function downloadPDF(){
   if(!generatedPapers.length) return;
+
   const {jsPDF} = window.jspdf;
-  const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
-  
+  const paperEl = document.getElementById(`paper-${activePaperIndex}`);
+  if(!paperEl) return;
+
+  const ansEl = document.getElementById(`ans-${activePaperIndex}`);
+  const wasHidden = ansEl && ansEl.style.display === 'none';
+
   const isICSE = currentCurriculum === 'icse8';
   const classLabel = isICSE ? 'Class VIII' : 'Class IX';
   const boardLabel = isICSE ? 'ICSE' : 'CBSE';
-  const paper = generatedPapers[activePaperIndex];
-  
-  let y = 20; 
-  const margin = 20;
-  const pageWidth = 210;
-  const contentWidth = pageWidth - (margin * 2);
 
-  // --- Header ---
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text(`${boardLabel} MATHEMATICS EXAMINATION`, pageWidth / 2, y, {align: 'center'});
-  y += 8;
-  doc.setFontSize(12);
-  doc.text(`${classLabel} · PAPER ${activePaperIndex + 1}`, pageWidth / 2, y, {align: 'center'});
-  y += 10;
-
-  // --- Exam Info ---
-  doc.setFontSize(10);
-  doc.text(`Time: 3 Hours`, margin, y);
-  doc.text(`Maximum Marks: 80`, pageWidth - margin, y, {align: 'right'});
-  y += 4;
-  doc.setLineWidth(0.5);
-  doc.line(margin, y, pageWidth - margin, y);
-  y += 10;
-
-  // --- Questions ---
-  let qNum = 0;
-  paper.sections.forEach(s => {
-    if (y > 260) { doc.addPage(); y = 20; }
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text(`Section ${s.name} ${s.label}`, margin, y);
-    y += 8;
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
-
-    s.questions.forEach(q => {
-      qNum++;
-      
-      // ─── MASTER SAFAI + SPACING FIX (PDF) ───
-let qText = String(q.text || "");
-let cleanText = qText
-  .replace(/√/g, 'sqrt')
-  .replace(/\u2212/g, '-')        // Unicode minus sign
-  .replace(/\u2013|\u2014/g, '-') // En-dash, Em-dash
-  .replace(/['']/g, "'")          // Smart single quotes
-  .replace(/''/g, '-')            // Double single quotes → minus
-  .replace(/(\w)\s*"\s*(\w)/g, '$1 - $2') // Quote between chars → minus
-  .replace(/(\d)\s*"\s*/g, '$1 - ')       // Quote after digit → minus
-  .replace(/\s*"\s*(\d)/g, ' - $1')       // Quote before digit → minus
-  .replace(/"/g, '')              // Remove remaining quotes
-  .replace(/[^\x00-\x7F]/g, function(c) {
-    const map = {'²':'2','³':'3','⁴':'4','⁵':'5','÷':'/','×':'x','≤':'<=','≥':'>=','≠':'!=','π':'pi','∛':'cbrt','∞':'inf','°':'deg','₁':'1','₂':'2','₃':'3'};
-    return map[c] || '';
-  })
-  .replace(/\s+/g, ' ')
-  .trim();
-
-      const qLine = `${qNum}. ${cleanText}`;
-      const splitQ = doc.splitTextToSize(qLine, contentWidth);
-      const qHeight = splitQ.length * 7; 
-
-      if (y + qHeight > 280) { doc.addPage(); y = 20; }
-      doc.text(splitQ, margin, y);
-      y += qHeight + 2; 
-    });
-    y += 6; 
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4'
   });
 
-  // --- Answer Key ---
-  if(showAnswers){
-    doc.addPage();
-    y = 20;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.text('ANSWER KEY', pageWidth / 2, y, {align: 'center'});
-    y += 12;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    let aNum = 0;
-    paper.sections.forEach(s => {
-      s.questions.forEach(q => {
-        aNum++;
-        let aText = String(q.answer || "");
-        // ✅ Correct
-let cleanAns = aText
-  .replace(/\u2212/g, '-')
-  .replace(/\u2013|\u2014/g, '-')
-  .replace(/''/g, '-')
-  .replace(/(\w)\s*"\s*(\w)/g, '$1 - $2')
-  .replace(/"/g, '')
-  .replace(/[^\x00-\x7F]/g, function(c) {
-    const map = {'²':'2','³':'3','⁴':'4','÷':'/','×':'x','π':'pi','∛':'cbrt','°':'deg','√':'sqrt'};
-    return map[c] || '';
-  })
-  .replace(/\s+/g, ' ')
-  .trim();
-        const aLine = `${aNum}. ${cleanAns}`;
-        const splitA = doc.splitTextToSize(aLine, contentWidth);
-        const aHeight = splitA.length * 5;
-        if (y + aHeight > 280) { doc.addPage(); y = 20; }
-        doc.text(splitA, margin, y);
-        y += aHeight + 2;
-      });
-    });
-  }
-
-  doc.save(`${boardLabel}_${classLabel.replace(' ','')}_Paper${activePaperIndex+1}.pdf`);
+  doc.html(paperEl, {
+    callback: function(doc) {
+      if(ansEl && wasHidden) ansEl.style.display = 'none';
+      doc.save(`${boardLabel}_${classLabel.replace(' ','')}_Paper${activePaperIndex+1}.pdf`);
+    },
+    x: 10,
+    y: 10,
+    width: 190,
+    windowWidth: 780,
+    html2canvas: {
+      scale: 0.264,
+      useCORS: true,
+      logging: false
+    }
+  });
 }
-
 buildChapterList();
 </script>
 </body>
