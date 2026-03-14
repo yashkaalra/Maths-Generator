@@ -327,7 +327,7 @@ G_ICSE8['Rational Numbers']={
 
 G_ICSE8['Exponents']={
   easy:[
-    ()=>{const b=rng(2,5),e=rng(2,4);return{topic:'Evaluate power',text:`Evaluate: ${b}^${e}.`,answer:`${Math.pow(b,e)}`}},
+    ()=>{const b=rng(2,5),e=rng(2,4);return{topic:'Evaluate power',text:`Evaluate: ${b}<sup>${e}</sup>.`,answer:`${Math.pow(b,e)}`}},
     ()=>{const b=rng(2,5),e=rng(2,4);return{topic:'Negative exponent',text:`Express ${b}^(−${e}) as a fraction.`,answer:`1/${Math.pow(b,e)}`}},
     ()=>{const b=rng(2,4),p=rng(2,3),q=rng(2,3);return{topic:'Product of powers',text:`Simplify: ${b}^${p} × ${b}^${q}.`,answer:`${b}^${p+q} = ${Math.pow(b,p+q)}`}},
     ()=>{const b=rng(2,4),p=rng(3,5),q=rng(1,2);return{topic:'Quotient of powers',text:`Simplify: ${b}^${p} ÷ ${b}^${q}.`,answer:`${b}^${p-q} = ${Math.pow(b,p-q)}`}},
@@ -1321,14 +1321,15 @@ function downloadPDF(){
       if(ansEl && wasHidden) ansEl.style.display = 'none';
       doc.save(`${boardLabel}_${classLabel.replace(' ','')}_Paper${activePaperIndex+1}.pdf`);
     },
-    x: 10,
-    y: 10,
-    width: 190,
-    windowWidth: 780,
+    x: 5,
+    y: 5,
+    width: 200,
+    windowWidth: 800,
     html2canvas: {
-      scale: 0.264,
+      scale: 2,
       useCORS: true,
-      logging: false
+      logging: false,
+      letterRendering: true
     }
   });
 }
