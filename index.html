@@ -1373,8 +1373,7 @@ function downloadPDF(){
     s.questions.forEach(q => {
   qNum++;
   let txt = String(q.text)
-    .replace(/<sup>(.*?)<\/sup>/g, '^$1')
-    .replace(/<[^>]+>/g, '')
+    .replace(/<(?!sup|\/sup)[^>]+>/g, '')
     .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>')
     // Unicode fixes
     .replace(/₹/g, 'Rs.')
@@ -1411,28 +1410,28 @@ function renderWithSuperscript(text, startX, startY, maxWidth){
   const normalSize = 10;
   const supSize = 7;
 
-  parts.forEach(part => {
-    const supMatch = part.match(/<sup>(.*?)<\/sup>/);
-    if(supMatch){
-      const supText = supMatch[1];
-      doc.setFontSize(supSize);
-      doc.text(supText, curX, lineY - 2);
-      curX += doc.getTextWidth(supText);
-      doc.setFontSize(normalSize);
-    } else {
-      // Handle word wrapping for normal text
-      const words = part.split(' ');
-      words.forEach((word, i) => {
-        const w = doc.getTextWidth(word + (i<words.length-1?' ':''));
-        if(curX + w > margin + maxWidth && curX > startX){
-          curX = startX;
-          lineY += lineHeight;
-        }
-        doc.text(word + (i<words.length-1?' ':''), curX, lineY);
-        curX += w;
-      });
-    }
-  });
+parts.forEach(part => {
+  const supMatch = part.match(/<sup>(.*?)<\/sup>/);
+  if(supMatch){
+    const supText = supMatch[1];
+    doc.setFontSize(7); // Chota size power ke liye
+    doc.text(supText, curX, lineY - 2); // 'y' ko 2mm upar draw karega
+    curX += doc.getTextWidth(supText) + 0.5;
+    doc.setFontSize(10); // Wapas normal size
+  } else {
+    // Normal text drawing logic
+    const words = part.split(' ');
+    words.forEach((word, i) => {
+      const w = doc.getTextWidth(word + (i < words.length - 1 ? ' ' : ''));
+      if(curX + w > margin + maxWidth && curX > startX){
+        curX = startX;
+        lineY += lineHeight;
+      }
+      doc.text(word + (i < words.length - 1 ? ' ' : ''), curX, lineY);
+      curX += w;
+    });
+  }
+});
   return lineY - startY + lineHeight;
 }
 
