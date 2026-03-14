@@ -1328,58 +1328,49 @@ function downloadPDF(){
   function checkPage(needed){
     if(y + needed > 285){ doc.addPage(); y = 15; }
   }
- function drawSqrt(doc, x, yPos, text, fontSize){
+ function drawSqrt(doc, x, yPos, text, fontSize) {
   doc.setFontSize(fontSize);
   const textW = doc.getTextWidth(text);
-  // h ko 0.45 kiya taaki line number se na chipke (thodi upar rahe)
-  const h = fontSize * 0.45; 
+  const h = fontSize * 0.45;
   doc.setLineWidth(0.3);
-  
-  doc.line(x, yPos, x+1.5, yPos+2); // Niche wali tick
-  doc.line(x+1.5, yPos+2, x+3, yPos-h); // Upar jane wali diagonal line
-  doc.line(x+3, yPos-h, x+3+textW+2, yPos-h); // Horizontal line (Overline)
-  
-  doc.text(text, x+3.5, yPos);
+  doc.line(x, yPos, x + 1.5, yPos + 2);
+  doc.line(x + 1.5, yPos + 2, x + 3, yPos - h);
+  doc.line(x + 3, yPos - h, x + 3 + textW + 2, yPos - h);
+  doc.text(text, x + 3.5, yPos);
   return x + 3.5 + textW + 2;
 }
-  function drawAngle(doc, x, yPos, fontSize) {
-  const s = fontSize * 0.4; // Symbol ka size adjust karne ke liye
-  doc.setLineWidth(0.3);
-  // Angle ki do lines draw karega: niche wali seedhi aur upar wali diagonal
-  doc.line(x, yPos, x + s, yPos); 
-  doc.line(x, yPos, x + s*0.8, yPos - s);
-  return x + s + 1; // Naya X position return karega
-}
 
-function drawCbrt(doc, x, yPos, text, fontSize){
-  // '3' ko thoda right aur niche shift kiya radical sign ke kareeb lane ke liye
+function drawCbrt(doc, x, yPos, text, fontSize) {
   doc.setFontSize(fontSize * 0.55);
-  doc.text('3', x + 0.5, yPos - 1.8); 
-  
+  doc.text('3', x + 0.5, yPos - 1.8);
   doc.setFontSize(fontSize);
   const textW = doc.getTextWidth(text);
-  const h = fontSize * 0.45; // Height factor yahan bhi upar rakha hai
+  const h = fontSize * 0.45;
   doc.setLineWidth(0.3);
-  
-  // Radical lines ka starting point 'x+1.5' kiya taaki gap khatam ho jaye
-  doc.line(x+1.5, yPos, x+3, yPos+2); 
-  doc.line(x+3, yPos+2, x+4.5, yPos-h); 
-  doc.line(x+4.5, yPos-h, x+4.5+textW+2, yPos-h); 
-  
-  doc.text(text, x+5, yPos);
+  doc.line(x + 1.5, yPos, x + 3, yPos + 2);
+  doc.line(x + 3, yPos + 2, x + 4.5, yPos - h);
+  doc.line(x + 4.5, yPos - h, x + 4.5 + textW + 2, yPos - h);
+  doc.text(text, x + 5, yPos);
   return x + 5 + textW + 2;
+}
+
+function drawAngle(doc, x, yPos) {
+  doc.setLineWidth(0.3);
+  doc.line(x, yPos, x + 3.5, yPos);
+  doc.line(x, yPos, x + 2.5, yPos - 3.5);
+  return x + 4.5;
 }
 
 function renderMathText(doc, fullText, startX, startY, maxWidth) {
   const fontSize = 10;
   doc.setFontSize(fontSize);
-  // Ye Regex ab sqrt, cbrt AUR <sup> teeno ko handle karega
-  const parts = fullText.split(/(sqrt\([^)]+\)|cbrt\([^)]+\)|<sup>[^<]+<\/sup>)/g);
+  // Fixed split: Handles complex powers, roots, and angle symbols
+  const parts = fullText.split(/(sqrt\([^)]+\)|cbrt\([^)]+\)|<sup>.*?<\/sup>|∠[A-Z]+)/g);
   let curX = startX;
   let curY = startY;
   const lineH = 6;
 
-parts.forEach(part => {
+  parts.forEach(part => {
     if (!part) return;
     const sqrtMatch = part.match(/^sqrt\(([^)]+)\)$/);
     const cbrtMatch = part.match(/^cbrt\(([^)]+)\)$/);
@@ -1396,7 +1387,7 @@ parts.forEach(part => {
       curX += doc.getTextWidth(supMatch[1]) + 0.8;
       doc.setFontSize(fontSize);
     } else if (angleMatch) {
-      curX = drawAngle(doc, curX, curY); // Naya Angle drawing logic
+      curX = drawAngle(doc, curX, curY);
       doc.text(angleMatch[1], curX, curY);
       curX += doc.getTextWidth(angleMatch[1]) + 1;
     } else {
@@ -1417,7 +1408,8 @@ parts.forEach(part => {
         }
         const w = doc.getTextWidth(word + ' ');
         if (curX + w > startX + maxWidth && curX > startX) {
-          curX = startX; curY += lineH;
+          curX = startX;
+          curY += lineH;
         }
         doc.text(word + ' ', curX, curY);
         curX += w;
@@ -1426,143 +1418,96 @@ parts.forEach(part => {
   });
   return (curY - startY) + lineH;
 }
-  
-  function writeLine(txt, fontSize, bold, indent){
-    doc.setFontSize(fontSize);
-    doc.setFont('helvetica', bold ? 'bold' : 'normal');
-    const lines = doc.splitTextToSize(txt, contentW - (indent||0));
-    checkPage(lines.length * (fontSize * 0.4 + 1));
-    doc.text(lines, margin + (indent||0), y);
-    y += lines.length * (fontSize * 0.4 + 1) + 1;
+
+function downloadPDF() {
+  if (!generatedPapers.length) return;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+  const isICSE = currentCurriculum === 'icse8';
+  const classLabel = isICSE ? 'Class VIII' : 'Class IX';
+  const boardLabel = isICSE ? 'ICSE' : 'CBSE';
+  const paper = generatedPapers[activePaperIndex];
+
+  const margin = 15;
+  const pageW = 210;
+  const contentW = pageW - margin * 2;
+  let y = 18;
+
+  function checkPage(needed) {
+    if (y + needed > 285) { doc.addPage(); y = 15; }
   }
 
   // Header
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(15);
-  doc.text(`${boardLabel} MATHEMATICS EXAMINATION`, pageW/2, y, {align:'center'});
+  doc.setFont('helvetica', 'bold').setFontSize(15);
+  doc.text(`${boardLabel} MATHEMATICS EXAMINATION`, pageW / 2, y, { align: 'center' });
   y += 7;
-  doc.setFontSize(11);
-  doc.text(`${classLabel}  ·  Paper ${activePaperIndex+1}`, pageW/2, y, {align:'center'});
+  doc.setFontSize(11).text(`${classLabel}  ·  Paper ${activePaperIndex + 1}`, pageW / 2, y, { align: 'center' });
   y += 7;
   doc.setLineWidth(0.5);
-  doc.line(margin, y, pageW-margin, y);
-  y += 5;
-  doc.setFont('helvetica','normal');
-  doc.setFontSize(10);
-  doc.text('Time: 3 Hours', margin, y);
-  doc.text('Maximum Marks: 80', pageW-margin, y, {align:'right'});
-  y += 5;
-  doc.setFontSize(9);
-  doc.setFont('helvetica','italic');
-  doc.text('General Instructions: Attempt all questions. Show all working.', margin, y);
-  y += 8;
+  doc.line(margin, y, pageW - margin, y);
+  y += 10;
 
   let qNum = 0;
   paper.sections.forEach(s => {
-    checkPage(14);
-    // Section header
-    doc.setFillColor(240,240,240);
-    doc.rect(margin, y-4, contentW, 7, 'F');
-    doc.setFont('helvetica','bold');
-    doc.setFontSize(11);
-    doc.text(`Section ${s.name}  ${s.label}`, margin+2, y);
-    y += 7;
-
-   s.questions.forEach(q => {
-     let qNum = 0;
-  paper.sections.forEach(s => {
     checkPage(15);
-    // Section Header background aur title
     doc.setFillColor(240, 240, 240);
     doc.rect(margin, y - 4, contentW, 7, 'F');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold').setFontSize(11);
     doc.text(`Section ${s.name}  ${s.label}`, margin + 2, y);
     y += 10;
 
     s.questions.forEach(q => {
       qNum++;
-      
       let txt = String(q.text)
-        // 1. Q.11 Fix: Lambi powers (a2+ab+b2) ko handle karne ke liye advanced regex
-        .replace(/\^(\((?:[^)(]+|\((?:[^)(]+|\([^)(]*\))*\))*\)|[a-zA-Z0-9]+)/g, '<sup>$1</sup>') 
-        
-        // 2. Q.29 Fix: ? ko Angle symbol mein badlo
+        .replace(/\^(\((?:[^)(]+|\((?:[^)(]+|\([^)(]*\))*\))*\)|[a-zA-Z0-9]+)/g, '<sup>$1</sup>')
         .replace(/\?([A-Z]+)/g, '∠$1')
-
-        // 3. Roots ko bracket format mein badlo renderer ke liye
         .replace(/√\s*(\d+)/g, 'sqrt($1)')
         .replace(/∛\s*(\d+)/g, 'cbrt($1)')
-
-        // 4. Unicode aur Formatting fixes
         .replace(/²/g, '<sup>2</sup>').replace(/³/g, '<sup>3</sup>')
-        .replace(/<(?!sup|\/sup)[^>]+>/g, '') // HTML saaf karo (sup bachao)
-        .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>')
+        .replace(/<(?!sup|\/sup)[^>]+>/g, '')
         .replace(/₹/g, 'Rs.').replace(/π/g, 'pi')
-        .replace(/×/g, 'x').replace(/÷/g, '/')
         .replace(/[−\u2212\u2013\u2014]/g, '-')
         .replace(/deg/g, '°')
-        .replace(/[^\x00-\x7F\u2220]/g, ''); // Angle symbol \u2220 ko delete mat karna
+        .replace(/[^\x00-\x7F\u2220]/g, '');
 
-      // 5. Page check aur Numbering
       checkPage(12);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10.5);
+      doc.setFont('helvetica', 'bold').setFontSize(10.5);
       doc.text(`${qNum}.`, margin, y);
       doc.setFont('helvetica', 'normal');
-      
-      // 6. Asli Math Renderer call (EK BAAR)
+
       const heightUsed = renderMathText(doc, txt, margin + 8, y, contentW - 10);
       y += heightUsed;
     });
-    y += 5; // Section ke baad thoda gap
-  }); // Yahan Sections wala loop khatam hota hai
+    y += 5;
+  });
 
-  // Answer Key
-  if(showAnswers){
+  if (showAnswers) {
     doc.addPage(); y = 15;
-    doc.setFont('helvetica','bold');
-    doc.setFontSize(13);
-    doc.text('ANSWER KEY', pageW/2, y, {align:'center'});
-    y += 9;
+    doc.setFont('helvetica', 'bold').setFontSize(13);
+    doc.text('ANSWER KEY', pageW / 2, y, { align: 'center' });
+    y += 10;
     let aN = 0;
     paper.sections.forEach(s => {
       s.questions.forEach(q => {
         aN++;
-       let ans = String(q.answer||'')
-  .replace(/₹/g, 'Rs.')
-  .replace(/π/g, 'pi')
-  .replace(/α/g, 'alpha')
-  .replace(/β/g, 'beta')
-  .replace(/√/g, 'sqrt')
-  .replace(/∛/g, 'cbrt')
-  .replace(/²/g, '^2')
-  .replace(/³/g, '^3')
-  .replace(/⁴/g, '^4')
-  .replace(/×/g, 'x')
-  .replace(/÷/g, '/')
-  .replace(/−/g, '-')
-  .replace(/\u2212/g, '-')
-  .replace(/\u2013/g, '-')
-  .replace(/\u2014/g, '-')
-  .replace(/°/g, ' deg')
-  .replace(/sqrt(\d+)/g, 'sqrt($1)')
-  .replace(/cbrt(\d+)/g, 'cbrt($1)')
-  .replace(/[^\x00-\x7F\u2220]/g, '');
-        checkPage(8);
-        doc.setFont('helvetica','bold');
-        doc.setFontSize(9.5);
-        doc.text(`${aN}.`, margin, y);
-        doc.setFont('helvetica','normal');
+        let ans = String(q.answer || '')
+          .replace(/\^(\((?:[^)(]+|\((?:[^)(]+|\([^)(]*\))*\))*\)|[a-zA-Z0-9]+)/g, '<sup>$1</sup>')
+          .replace(/\?([A-Z]+)/g, '∠$1')
+          .replace(/√\s*(\d+)/g, 'sqrt($1)')
+          .replace(/[−\u2212\u2013\u2014]/g, '-')
+          .replace(/[^\x00-\x7F\u2220]/g, '');
+
         checkPage(10);
-// Answers mein bhi symbols ko asli math style mein draw karo
-const aHeight = renderMathText(doc, ans, margin+7, y, contentW-8);
-y += aHeight;
+        doc.setFont('helvetica', 'bold').setFontSize(10);
+        doc.text(`${aN}.`, margin, y);
+        doc.setFont('helvetica', 'normal');
+        const aHeight = renderMathText(doc, ans, margin + 8, y, contentW - 10);
+        y += aHeight;
       });
     });
   }
-
-  doc.save(`${boardLabel}_${classLabel.replace(' ','')}_Paper${activePaperIndex+1}.pdf`);
+  doc.save(`${boardLabel}_${classLabel.replace(' ', '')}_Paper${activePaperIndex + 1}.pdf`);
 }
 buildChapterList();
 </script>
