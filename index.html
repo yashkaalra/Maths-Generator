@@ -1145,32 +1145,64 @@ function buildPaper(chapters){
   return paper;
 }
 
-function renderPaper(paper,idx){
-  const isICSE=currentCurriculum==='icse8';
-  const classLabel=isICSE?'Class VIII':'Class IX';
-  const boardLabel=isICSE?'ICSE':'CBSE';
-  const bookLabel=isICSE?'ML Aggarwal':'NCERT';
-  let qNum=0;
-  let html=`<div class="paper-doc" id="paper-${idx}">
+function renderPaper(paper, idx) {
+  const isICSE = currentCurriculum === 'icse8';
+  const classLabel = isICSE ? 'Class VIII' : 'Class IX';
+  const boardLabel = isICSE ? 'ICSE' : 'CBSE';
+  let qNum = 0;
+  
+  let html = `<div class="paper-doc" id="paper-${idx}">
     <div class="doc-header">
       <h2>${boardLabel} Mathematics Examination</h2>
-      <h3>${classLabel} · Paper ${idx+1}</h3>
+      <h3>${classLabel} · Paper ${idx + 1}</h3>
     </div>
     <div class="doc-meta">
       <span>Time: 3 Hours</span>
       <span>Maximum Marks: 80</span>
     </div>
-    <p style="font-size:12px;font-style:italic;margin-bottom:10px"><em>General Instructions: Attempt all questions. Show all working. Figures to the right indicate marks.</em></p>`;
-  paper.sections.forEach(s=>{
-    html+=`<div class="section-head">Section ${s.name} ${s.label}</div>`;
-    s.questions.forEach(q=>{qNum++;html+=`<div class="q-row"><span class="q-num">${qNum}.</span><span class="q-text">${q.text}</span></div>`;});
+    <p style="font-size:12px;font-style:italic;margin-bottom:10px">
+      <em>General Instructions: Attempt all questions. Show all working. Figures to the right indicate marks.</em>
+    </p>`;
+
+  paper.sections.forEach(s => {
+    html += `<div class="section-head">Section ${s.name} ${s.label}</div>`;
+    s.questions.forEach(q => {
+      qNum++;
+      
+      // ─── Safai Abhiyan (Cleaning Logic) ───
+      // 1. Agar do characters ke beech " hai toh use minus (-) banao
+      // 2. Baki saare akele " ko uda do
+      let cleanText = q.text
+        .replace(/(\w|\d)"(\s*)(\w|\d)/g, '$1 - $3') 
+        .replace(/"/g, ''); 
+      
+      html += `<div class="q-row">
+        <span class="q-num">${qNum}.</span>
+        <span class="q-text">${cleanText}</span>
+      </div>`;
+    });
   });
-  html+=`<div class="ans-section" id="ans-${idx}" style="display:${showAnswers?'block':'none'}"><h4>Answer Key</h4>`;
-  qNum=0;
-  paper.sections.forEach(s=>{s.questions.forEach(q=>{qNum++;html+=`<div class="ans-row"><span class="ans-num">${qNum}.</span><span class="ans-text">${q.answer}</span></div>`;});});
-  html+=`</div></div>`;
+
+  html += `<div class="ans-section" id="ans-${idx}" style="display:${showAnswers ? 'block' : 'none'}">
+    <h4>Answer Key</h4>`;
+  
+  qNum = 0;
+  paper.sections.forEach(s => {
+    s.questions.forEach(q => {
+      qNum++;
+      // Answer key ko bhi clean rakhein
+      let cleanAns = q.answer.toString().replace(/"/g, '');
+      html += `<div class="ans-row">
+        <span class="ans-num">${qNum}.</span>
+        <span class="ans-text">${cleanAns}</span>
+      </div>`;
+    });
+  });
+
+  html += `</div></div>`;
   return html;
 }
+  
 
 function generatePapers(){
   // 1. Selected chapters check karein
