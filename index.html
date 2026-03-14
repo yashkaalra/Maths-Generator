@@ -1328,7 +1328,72 @@ function downloadPDF(){
   function checkPage(needed){
     if(y + needed > 285){ doc.addPage(); y = 15; }
   }
+  function drawSqrt(doc, x, yPos, text, fontSize){
+  doc.setFontSize(fontSize);
+  const textW = doc.getTextWidth(text);
+  const h = fontSize * 0.35;
+  doc.setLineWidth(0.3);
+  doc.line(x, yPos, x+1.5, yPos+2); // Choti niche wali line
+  doc.line(x+1.5, yPos+2, x+3, yPos-h+1); // Tikona upar
+  doc.line(x+3, yPos-h+1, x+3+textW+2, yPos-h+1); // Chhat (Overline)
+  doc.text(text, x+3.5, yPos);
+  return x + 3.5 + textW + 2;
+}
 
+function drawCbrt(doc, x, yPos, text, fontSize){
+  doc.setFontSize(fontSize * 0.6);
+  doc.text('3', x, yPos-2); // Chota 3
+  doc.setFontSize(fontSize);
+  const textW = doc.getTextWidth(text);
+  const h = fontSize * 0.35;
+  doc.setLineWidth(0.3);
+  doc.line(x+2.5, yPos, x+4, yPos+2);
+  doc.line(x+4, yPos+2, x+5.5, yPos-h+1);
+  doc.line(x+5.5, yPos-h+1, x+5.5+textW+2, yPos-h+1);
+  doc.text(text, x+6, yPos);
+  return x + 6 + textW + 2;
+}
+
+function renderMathText(doc, fullText, startX, startY, maxWidth) {
+  const fontSize = 10;
+  doc.setFontSize(fontSize);
+  // Ye Regex ab sqrt, cbrt AUR <sup> teeno ko handle karega
+  const parts = fullText.split(/(sqrt\([^)]+\)|cbrt\([^)]+\)|<sup>[^<]+<\/sup>)/g);
+  let curX = startX;
+  let curY = startY;
+  const lineH = 6;
+
+  parts.forEach(part => {
+    if (!part) return;
+    const sqrtMatch = part.match(/^sqrt\(([^)]+)\)$/);
+    const cbrtMatch = part.match(/^cbrt\(([^)]+)\)$/);
+    const supMatch = part.match(/^<sup>([^<]+)<\/sup>$/);
+
+    if (sqrtMatch) {
+      curX = drawSqrt(doc, curX, curY, sqrtMatch[1], fontSize);
+    } else if (cbrtMatch) {
+      curX = drawCbrt(doc, curX, curY, cbrtMatch[1], fontSize);
+    } else if (supMatch) {
+      doc.setFontSize(fontSize * 0.7);
+      doc.text(supMatch[1], curX, curY - 2);
+      curX += doc.getTextWidth(supMatch[1]) + 0.5;
+      doc.setFontSize(fontSize);
+    } else {
+      const words = part.split(' ');
+      words.forEach((word, i) => {
+        const w = doc.getTextWidth(word + ' ');
+        if (curX + w > startX + maxWidth && curX > startX) {
+          curX = startX;
+          curY += lineH;
+        }
+        doc.text(word + (i < words.length - 1 ? ' ' : ''), curX, curY);
+        curX += w;
+      });
+    }
+  });
+  return (curY - startY) + lineH;
+}
+  
   function writeLine(txt, fontSize, bold, indent){
     doc.setFontSize(fontSize);
     doc.setFont('helvetica', bold ? 'bold' : 'normal');
@@ -1400,43 +1465,14 @@ function downloadPDF(){
 doc.setFontSize(10.5);
 doc.text(`${qNum}.`, margin, y);
 doc.setFont('helvetica','normal');
+      
+// Pehle page check karo ki space hai ya nahi
+checkPage(12); 
 
-// Split text into segments: normal and superscript
-function renderWithSuperscript(text, startX, startY, maxWidth){
-  const parts = text.split(/(<sup>.*?<\/sup>)/g);
-  let curX = startX;
-  let lineY = startY;
-  const lineHeight = 6;
-  const normalSize = 10;
-  const supSize = 7;
+// Ab naye smart renderer ko use karo jo sqrt aur powers dono handle karega
+const heightUsed = renderMathText(doc, txt, margin+8, y, contentW-10);
 
-parts.forEach(part => {
-  const supMatch = part.match(/<sup>(.*?)<\/sup>/);
-  if(supMatch){
-    const supText = supMatch[1];
-    doc.setFontSize(7); // Chota size power ke liye
-    doc.text(supText, curX, lineY - 2); // 'y' ko 2mm upar draw karega
-    curX += doc.getTextWidth(supText) + 0.5;
-    doc.setFontSize(10); // Wapas normal size
-  } else {
-    // Normal text drawing logic
-    const words = part.split(' ');
-    words.forEach((word, i) => {
-      const w = doc.getTextWidth(word + (i < words.length - 1 ? ' ' : ''));
-      if(curX + w > margin + maxWidth && curX > startX){
-        curX = startX;
-        lineY += lineHeight;
-      }
-      doc.text(word + (i < words.length - 1 ? ' ' : ''), curX, lineY);
-      curX += w;
-    });
-  }
-});
-  return lineY - startY + lineHeight;
-}
-
-const heightUsed = renderWithSuperscript(txt, margin+8, y, contentW-10);
-checkPage(heightUsed);
+// Height update karo agle sawal ke liye
 y += heightUsed;
     });
     y += 3;
@@ -1478,9 +1514,10 @@ y += heightUsed;
         doc.setFontSize(9.5);
         doc.text(`${aN}.`, margin, y);
         doc.setFont('helvetica','normal');
-        const aLines = doc.splitTextToSize(ans, contentW-8);
-        doc.text(aLines, margin+7, y);
-        y += aLines.length * 4.5 + 1.5;
+        checkPage(10);
+// Answers mein bhi symbols ko asli math style mein draw karo
+const aHeight = renderMathText(doc, ans, margin+7, y, contentW-8);
+y += aHeight;
       });
     });
   }
