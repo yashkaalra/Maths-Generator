@@ -1083,35 +1083,103 @@ function selAll(){getCurrentChapters().forEach((_,i)=>{const el=document.getElem
 function selNone(){getCurrentChapters().forEach((_,i)=>{const el=document.getElementById(`ch-${i}`);if(el)el.checked=false;});}
 
 function downloadPDF(){
-  if(!generatedPapers.length)return;
-  const {jsPDF}=window.jspdf;const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
-  const isICSE=currentCurriculum==='icse8';
-  const classLabel=isICSE?'Class VIII':'Class IX';
-  const boardLabel=isICSE?'ICSE':'CBSE';
-  const paper=generatedPapers[activePaperIndex];
-  let y=15;
-  doc.setFontSize(14);doc.setFont('helvetica','bold');
-  doc.text(`${boardLabel} Mathematics Examination – ${classLabel}`,105,y,{align:'center'});y+=7;
-  doc.setFontSize(11);doc.text(`Paper ${activePaperIndex+1}  |  Time: 3 Hours  |  Max Marks: 80`,105,y,{align:'center'});y+=8;
-  doc.setLineWidth(0.5);doc.line(15,y,195,y);y+=6;
-  let qNum=0;
-  paper.sections.forEach(s=>{
-    doc.setFontSize(11);doc.setFont('helvetica','bold');
-    doc.text(`Section ${s.name} ${s.label}`,15,y);y+=6;
-    doc.setFont('helvetica','normal');doc.setFontSize(10);
-    s.questions.forEach(q=>{
+  if(!generatedPapers.length) return;
+  const {jsPDF} = window.jspdf;
+  const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+  
+  const isICSE = currentCurriculum === 'icse8';
+  const classLabel = isICSE ? 'Class VIII' : 'Class IX';
+  const boardLabel = isICSE ? 'ICSE' : 'CBSE';
+  const paper = generatedPapers[activePaperIndex];
+  
+  let y = 20; 
+  const margin = 20;
+  const pageWidth = 210;
+  const contentWidth = pageWidth - (margin * 2);
+
+  // --- Header ---
+  doc.setFont("times", "bold");
+  doc.setFontSize(16);
+  doc.text(`${boardLabel} MATHEMATICS EXAMINATION`, pageWidth / 2, y, {align: 'center'});
+  y += 8;
+  
+  doc.setFontSize(12);
+  doc.text(`${classLabel} · PAPER ${activePaperIndex + 1}`, pageWidth / 2, y, {align: 'center'});
+  y += 10;
+
+  // --- Exam Info ---
+  doc.setFontSize(10);
+  doc.text(`Time: 3 Hours`, margin, y);
+  doc.text(`Maximum Marks: 80`, pageWidth - margin, y, {align: 'right'});
+  y += 4;
+  
+  doc.setLineWidth(0.5);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 10;
+
+  // --- Questions ---
+  let qNum = 0;
+  paper.sections.forEach(s => {
+    // Page check for section heading
+    if (y > 260) { doc.addPage(); y = 20; }
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text(`Section ${s.name} ${s.label}`, margin, y);
+    y += 8;
+
+    doc.setFont("times", "normal");
+    doc.setFontSize(11);
+
+    s.questions.forEach(q => {
       qNum++;
-      const lines=doc.splitTextToSize(`${qNum}. ${q.text}`,175);
-      if(y+lines.length*5>280){doc.addPage();y=15;}
-      doc.text(lines,15,y);y+=lines.length*5+2;
-    });y+=3;
+      const qLine = `${qNum}. ${q.text}`;
+      const splitQ = doc.splitTextToSize(qLine, contentWidth);
+      const qHeight = splitQ.length * 7; // Height based on line count
+
+      // Automatic Page Break
+      if (y + qHeight > 280) {
+        doc.addPage();
+        y = 20;
+      }
+
+      doc.text(splitQ, margin, y);
+      y += qHeight + 2; 
+    });
+    y += 6; 
   });
+
+  // --- Answer Key ---
   if(showAnswers){
-    doc.addPage();y=15;
-    doc.setFontSize(12);doc.setFont('helvetica','bold');doc.text('Answer Key',15,y);y+=8;
-    doc.setFont('helvetica','normal');doc.setFontSize(9);qNum=0;
-    paper.sections.forEach(s=>{s.questions.forEach(q=>{qNum++;const lines=doc.splitTextToSize(`${qNum}. ${q.answer}`,175);if(y+lines.length*5>280){doc.addPage();y=15;}doc.text(lines,15,y);y+=lines.length*5+2;});});
+    doc.addPage();
+    y = 20;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.text('ANSWER KEY', pageWidth / 2, y, {align: 'center'});
+    y += 12;
+    
+    doc.setFont("times", "normal");
+    doc.setFontSize(10);
+    let aNum = 0;
+
+    paper.sections.forEach(s => {
+      s.questions.forEach(q => {
+        aNum++;
+        const aLine = `${aNum}. ${q.answer}`;
+        const splitA = doc.splitTextToSize(aLine, contentWidth);
+        const aHeight = splitA.length * 5;
+
+        if (y + aHeight > 280) {
+          doc.addPage();
+          y = 20;
+        }
+
+        doc.text(splitA, margin, y);
+        y += aHeight + 2;
+      });
+    });
   }
+
   doc.save(`${boardLabel}_${classLabel.replace(' ','')}_Paper${activePaperIndex+1}.pdf`);
 }
 
