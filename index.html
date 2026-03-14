@@ -1330,26 +1330,25 @@ function downloadPDF(){
     s.questions.forEach(q => {
       qNum++;
       
-     // ─── Safai Abhiyan (PDF) ───
-let qText = String(q.text || "");
-let cleanText = qText
-  .replace(/[±α]/g, 'a')                       // 1. Symbols fix
-  .replace(/''/g, '-')                         // 2. Double single quotes ko minus banao
-  .replace(/(\w|\d)\s*"\s*(\w|\d)/g, '$1 - $2') // 3. Beech wale quotes ko minus banao (with space safety)
-  .replace(/"/g, '')                           // 4. Ab jo akele faltu quotes bache unhe uda do
-  .replace(/\s+/g, ' ')                        // 5. Extra spaces saaf karo
-  .trim();
+      // ─── MASTER SAFAI + SPACING FIX (PDF) ───
+      let qText = String(q.text || "");
+      let cleanText = qText
+        .replace(/±/g, 'alpha')           // Q.30 fix
+        .replace(/√\s*/g, 'sqrt ')        // Q.3 fix: Root ke baad ki faltu space hatayega
+        .replace(/''/g, ' - ')            // Double single quote ko minus banayega
+        .replace(/(\w|\d)\s*"\s*(\w|\d)/g, '$1 - $2') // Q.13 fix: Characters ke beech wale quote ko minus banayega
+        .replace(/"/g, '')                // Bache huye stray quotes uda dega
+        .replace(/\s+/g, ' ')             // Har tarah ki extra double spacing ko single space kar dega
+        .trim();
 
       const qLine = `${qNum}. ${cleanText}`;
       const splitQ = doc.splitTextToSize(qLine, contentWidth);
-      const qHeight = splitQ.length * 7;
+      const qHeight = splitQ.length * 7; 
 
       if (y + qHeight > 280) { doc.addPage(); y = 20; }
       doc.text(splitQ, margin, y);
       y += qHeight + 2; 
     });
-    y += 6; 
-  });
 
   // --- Answer Key ---
   if(showAnswers){
