@@ -1098,16 +1098,19 @@ function getGeneratorSet(){return currentCurriculum==='cbse9'?G_CBSE9:G_ICSE8}
 function buildPool(chapters){
   const pool=[];
   const GG=getGeneratorSet();
+  const globalUsed=new Set();   // ← tracks ALL questions across ALL chapters
   chapters.forEach(ch=>{
     const g=GG[ch];if(!g)return;
-    const levels=[['easy',1],['moderate',2],['hard',3]];
+    const levels=[['easy',1],['moderate',2],['hard',3],['hard',4]];
     levels.forEach(([level,marks])=>{
       if(!g[level])return;
-      const used=new Set();
-      g[level].forEach((fn,i)=>{
+      g[level].forEach((fn)=>{
         try{
           const q=fn();
-          if(q&&q.text&&!used.has(q.text)){used.add(q.text);pool.push({chapter:ch,level,marks,topic:q.topic,text:q.text,answer:q.answer});}
+          if(q&&q.text&&!globalUsed.has(q.text)){
+            globalUsed.add(q.text);   // ← mark as used globally
+            pool.push({chapter:ch,level,marks,topic:q.topic,text:q.text,answer:q.answer});
+          }
         }catch(e){}
       });
     });
@@ -1132,11 +1135,11 @@ function pickBalanced(pool,count,marks){
 function buildPaper(chapters){
   const pool=buildPool(chapters);
   const sections=[
-    {name:'A',marks:1,count:10,label:'(1 mark each)'},
-    {name:'B',marks:1,count:8, label:'(2 marks each)'},
-    {name:'C',marks:2,count:7, label:'(3 marks each)'},
-    {name:'D',marks:3,count:5, label:'(4 marks each)'},
-  ];
+  {name:'A',marks:1,count:10,label:'(1 mark each)'},
+  {name:'B',marks:2,count:8, label:'(2 marks each)'},
+  {name:'C',marks:3,count:7, label:'(3 marks each)'},
+  {name:'D',marks:4,count:5, label:'(4 marks each)'},
+];
   const paper={sections:[]};
   sections.forEach(s=>{
     const qs=pickBalanced(pool,s.count,s.marks);
@@ -1378,7 +1381,9 @@ function downloadPDF(){
     .replace(/\u2013/g, '-')
     .replace(/\u2014/g, '-')
     .replace(/°/g, ' deg')
-    .replace(/[^\x00-\x7F]/g, '?');  // catch-all for any remaining non-ASCII
+    .replace(/sqrt(\d)/g, 'sqrt($1)')
+    .replace(/cbrt(\d)/g, 'cbrt($1)')
+    .replace(/[^\x00-\x7F]/g, '?'); // catch-all for any remaining non-ASCII
       checkPage(10);
       doc.setFont('helvetica','bold');
       doc.setFontSize(10.5);
