@@ -242,7 +242,12 @@ function pick(arr){return arr[Math.floor(Math.random()*arr.length)]}
 function shuffle(arr){let a=[...arr];for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function gcd(a,b){return b?gcd(b,a%b):a}
 function lcm(a,b){return a*b/gcd(a,b)}
-function ff(n,d){let g=gcd(Math.abs(n),Math.abs(d));if(d<0){n=-n;d=-d}return `${n/g}/${d/g}`}
+function ff(n,d){
+  let g=gcd(Math.abs(n),Math.abs(d));
+  if(d<0){n=-n;d=-d}
+  if((d/g)===1) return `${n/g}`;
+  return `${n/g}/${d/g}`;
+}
 function mixed(w,n,d){return `${w} ${n}/${d}`}
 function name(){return pick(['Ravi','Priya','Amit','Sita','Kiran','Mohan','Deepa','Arjun','Nisha','Vijay','Anita','Suresh'])}
 function primeFactors(n){let f=[];for(let i=2;i*i<=n;i++){while(n%i===0){f.push(i);n/=i}}if(n>1)f.push(n);return f}
@@ -1381,8 +1386,8 @@ function downloadPDF(){
     .replace(/\u2013/g, '-')
     .replace(/\u2014/g, '-')
     .replace(/°/g, ' deg')
-    .replace(/sqrt(\d)/g, 'sqrt($1)')
-    .replace(/cbrt(\d)/g, 'cbrt($1)')
+    .replace(/sqrt(\d+)/g, 'sqrt($1)')
+    .replace(/cbrt(\d+)/g, 'cbrt($1)')
     .replace(/[^\x00-\x7F]/g, '?'); // catch-all for any remaining non-ASCII
       checkPage(10);
       doc.setFont('helvetica','bold');
@@ -1426,6 +1431,8 @@ function downloadPDF(){
   .replace(/\u2013/g, '-')
   .replace(/\u2014/g, '-')
   .replace(/°/g, ' deg')
+  .replace(/sqrt(\d+)/g, 'sqrt($1)')
+  .replace(/cbrt(\d+)/g, 'cbrt($1)')
   .replace(/[^\x00-\x7F]/g, '?');
         checkPage(8);
         doc.setFont('helvetica','bold');
