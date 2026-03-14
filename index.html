@@ -1381,10 +1381,10 @@ function renderMathText(doc, fullText, startX, startY, maxWidth) {
 
 parts.forEach(part => {
     if (!part) return;
-
     const sqrtMatch = part.match(/^sqrt\(([^)]+)\)$/);
     const cbrtMatch = part.match(/^cbrt\(([^)]+)\)$/);
     const supMatch = part.match(/^<sup>([^<]+)<\/sup>$/);
+    const angleMatch = part.match(/^∠([A-Z]+)$/);
 
     if (sqrtMatch) {
       curX = drawSqrt(doc, curX, curY, sqrtMatch[1], fontSize);
@@ -1392,49 +1392,34 @@ parts.forEach(part => {
       curX = drawCbrt(doc, curX, curY, cbrtMatch[1], fontSize);
     } else if (supMatch) {
       doc.setFontSize(fontSize * 0.7);
-      doc.text(supMatch[1], curX, curY - 2);
-      curX += doc.getTextWidth(supMatch[1]) + 0.5;
+      doc.text(supMatch[1], curX, curY - 2.5);
+      curX += doc.getTextWidth(supMatch[1]) + 0.8;
       doc.setFontSize(fontSize);
-    } 
-    // --- Naya Angle Symbol Logic ---
-    else if (part.startsWith('∠')) {
-      doc.setLineWidth(0.3);
-      doc.line(curX, curY, curX + 3.5, curY); // Niche ki line
-      doc.line(curX, curY, curX + 2.5, curY - 3); // Tirchi line
-      curX += 4.5;
-      let angleName = part.substring(1);
-      doc.text(angleName, curX, curY);
-      curX += doc.getTextWidth(angleName) + 1;
-    } 
-    else {
-      // Normal text aur Degree symbol handling
+    } else if (angleMatch) {
+      curX = drawAngle(doc, curX, curY); // Naya Angle drawing logic
+      doc.text(angleMatch[1], curX, curY);
+      curX += doc.getTextWidth(angleMatch[1]) + 1;
+    } else {
       const words = part.split(' ');
-      words.forEach((word, i) => {
+      words.forEach((word) => {
         if (!word) return;
-
-        // Degree symbol fix (Agar word mein ° hai)
         if (word.includes('°')) {
-          let subParts = word.split('°');
-          doc.text(subParts[0], curX, curY);
-          curX += doc.getTextWidth(subParts[0]);
+          let sub = word.split('°');
+          doc.text(sub[0], curX, curY);
+          curX += doc.getTextWidth(sub[0]);
           doc.setFontSize(fontSize * 0.6);
-          doc.text('o', curX, curY - 2); // Degree ki jagah chota 'o'
+          doc.text('o', curX, curY - 2.5);
           curX += 2;
           doc.setFontSize(fontSize);
-          if (subParts[1]) {
-            doc.text(subParts[1], curX, curY);
-            curX += doc.getTextWidth(subParts[1]);
-          }
-          curX += 1; // space
+          if (sub[1]) { doc.text(sub[1], curX, curY); curX += doc.getTextWidth(sub[1]); }
+          curX += 1;
           return;
         }
-
         const w = doc.getTextWidth(word + ' ');
         if (curX + w > startX + maxWidth && curX > startX) {
-          curX = startX;
-          curY += lineH;
+          curX = startX; curY += lineH;
         }
-        doc.text(word + (i < words.length - 1 ? ' ' : ''), curX, curY);
+        doc.text(word + ' ', curX, curY);
         curX += w;
       });
     }
@@ -1484,42 +1469,54 @@ parts.forEach(part => {
     y += 7;
 
    s.questions.forEach(q => {
+     let qNum = 0;
+  paper.sections.forEach(s => {
+    checkPage(15);
+    // Section Header background aur title
+    doc.setFillColor(240, 240, 240);
+    doc.rect(margin, y - 4, contentW, 7, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text(`Section ${s.name}  ${s.label}`, margin + 2, y);
+    y += 10;
+
+    s.questions.forEach(q => {
       qNum++;
       
-      // 1. Sabse pehle Caret (^) ko <sup> mein badlo taaki renderer pehchan sake
       let txt = String(q.text)
-        .replace(/\^(\(-?\d+\)|\d+)/g, '<sup>$1</sup>') 
+        // 1. Q.11 Fix: Lambi powers (a2+ab+b2) ko handle karne ke liye advanced regex
+        .replace(/\^(\((?:[^)(]+|\((?:[^)(]+|\([^)(]*\))*\))*\)|[a-zA-Z0-9]+)/g, '<sup>$1</sup>') 
         
-      // 2. Roots ko bracket format mein badlo (drawSqrt renderer ke liye)
+        // 2. Q.29 Fix: ? ko Angle symbol mein badlo
+        .replace(/\?([A-Z]+)/g, '∠$1')
+
+        // 3. Roots ko bracket format mein badlo renderer ke liye
         .replace(/√\s*(\d+)/g, 'sqrt($1)')
         .replace(/∛\s*(\d+)/g, 'cbrt($1)')
 
-      // 3. HTML tags saaf karo (Lekin <sup> tags ko bachao)
-        .replace(/<(?!sup|\/sup)[^>]+>/g, '')
-        
-      // 4. Baki Unicode aur Formatting fixes
+        // 4. Unicode aur Formatting fixes
+        .replace(/²/g, '<sup>2</sup>').replace(/³/g, '<sup>3</sup>')
+        .replace(/<(?!sup|\/sup)[^>]+>/g, '') // HTML saaf karo (sup bachao)
         .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>')
         .replace(/₹/g, 'Rs.').replace(/π/g, 'pi')
-        .replace(/α/g, 'alpha').replace(/β/g, 'beta')
-        .replace(/²/g, '<sup>2</sup>').replace(/³/g, '<sup>3</sup>')
         .replace(/×/g, 'x').replace(/÷/g, '/')
         .replace(/[−\u2212\u2013\u2014]/g, '-')
-        .replace(/°/g, ' deg')
-        .replace(/[^\x00-\x7F\u2220]/g, '');
+        .replace(/deg/g, '°')
+        .replace(/[^\x00-\x7F\u2220]/g, ''); // Angle symbol \u2220 ko delete mat karna
 
-      // 5. Page check aur Question Number print
+      // 5. Page check aur Numbering
       checkPage(12);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(10.5);
       doc.text(`${qNum}.`, margin, y);
       doc.setFont('helvetica', 'normal');
       
-      // 6. Naya Smart Math Renderer call karo
-      const heightUsed = renderMathText(doc, txt, margin+8, y, contentW-10);
+      // 6. Asli Math Renderer call (EK BAAR)
+      const heightUsed = renderMathText(doc, txt, margin + 8, y, contentW - 10);
       y += heightUsed;
     });
-    y += 3;
-  });
+    y += 5; // Section ke baad thoda gap
+  }); // Yahan Sections wala loop khatam hota hai
 
   // Answer Key
   if(showAnswers){
