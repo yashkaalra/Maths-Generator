@@ -96,6 +96,79 @@ body{font-family:'Segoe UI',sans-serif;background:#f0f2f5;display:flex;height:10
     page-break-before: always; /* Answer key hamesha naye page se shuru ho */
   }
 }
+  /* ─── Optimized Mobile CSS ─── */
+@media (max-width: 850px) {
+  body {
+    flex-direction: column;
+    overflow-y: auto;
+    height: auto;
+    background: #fff;
+  }
+
+  /* Sidebar ab screen ke upar ek control panel ban jayega */
+  #sidebar {
+    width: 100%;
+    height: auto;
+    max-height: none;
+    border-radius: 0 0 20px 20px;
+    position: relative;
+    padding-bottom: 20px;
+  }
+
+  /* Chapters list ko chota aur scrollable banaya */
+  .chapters-area {
+    max-height: 180px;
+    background: rgba(0,0,0,0.1);
+    margin: 10px 15px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  /* Buttons ko ek line mein laane ke liye */
+  #toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    padding: 8px;
+    background: #ffffff;
+    display: flex;
+    justify-content: space-around;
+    border-bottom: 1px solid #eee;
+  }
+
+  .tb-btn {
+    padding: 10px 5px;
+    font-size: 10px; /* Chote phones ke liye space bachegi */
+    flex: 1;
+    margin: 2px;
+    text-align: center;
+    border-radius: 5px;
+  }
+
+  /* Paper ka look mobile par */
+  #paperArea {
+    padding: 10px;
+  }
+
+  .paper-doc {
+    width: 100% !important;
+    padding: 15px !important;
+    margin: 0;
+    box-shadow: none;
+    border: 1px solid #eee;
+    font-size: 13px; /* Reading ease */
+  }
+
+  .doc-header h2 { font-size: 14px; }
+  .section-head { font-size: 11px; padding: 4px; }
+  
+  /* Select boxes aur inputs mobile friendly */
+  select, input[type=number] {
+    padding: 12px;
+    font-size: 16px; /* Takki keyboard open hone par zoom na ho */
+  }
+}
+  
 </style>
 </head>
 <body>
@@ -1090,14 +1163,38 @@ function renderPaper(paper,idx){
 }
 
 function generatePapers(){
-  const chapters=getSelectedChapters();
-  if(!chapters.length){alert('Please select at least one chapter.');return;}
-  const n=Math.min(5,Math.max(1,parseInt(document.getElementById('numPapers').value)||1));
-  generatedPapers=[];
-  for(let i=0;i<n;i++)generatedPapers.push(buildPaper(chapters));
-  activePaperIndex=0;showAnswers=false;
+  // 1. Selected chapters check karein
+  const chapters = getSelectedChapters();
+  if(!chapters.length){
+    alert('Please select at least one chapter.');
+    return;
+  }
+
+  // 2. Papers ki sankhya set karein (Max 5)
+  const n = Math.min(5, Math.max(1, parseInt(document.getElementById('numPapers').value) || 1));
+  
+  // 3. Purane papers saaf karein aur naye generate karein
+  generatedPapers = [];
+  for(let i = 0; i < n; i++) {
+    generatedPapers.push(buildPaper(chapters));
+  }
+
+  // 4. Default settings reset karein
+  activePaperIndex = 0;
+  showAnswers = false;
+
+  // 5. UI Render karein (Tabs aur Paper dikhayein)
   renderAll();
+
+  // 6. Mobile Optimization: Screen ko smooth scroll karke paper par le jayein
+  if(window.innerWidth < 850) {
+    const toolbar = document.getElementById('toolbar');
+    if(toolbar) {
+      toolbar.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
 }
+  
 
 function renderAll(){
   const tabs=document.getElementById('paperTabs');
