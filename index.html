@@ -1331,15 +1331,16 @@ function downloadPDF(){
       qNum++;
       
       // ─── MASTER SAFAI + SPACING FIX (PDF) ───
-      let qText = String(q.text || "");
-      let cleanText = qText
-        .replace(/±/g, 'alpha')           // Q.30 fix
-        .replace(/√\s*/g, 'sqrt ')        // Q.3 fix: Root ke baad ki faltu space hatayega
-        .replace(/''/g, ' - ')            // Double single quote ko minus banayega
-        .replace(/(\w|\d)\s*"\s*(\w|\d)/g, '$1 - $2') // Q.13 fix: Characters ke beech wale quote ko minus banayega
-        .replace(/"/g, '')                // Bache huye stray quotes uda dega
-        .replace(/\s+/g, ' ')             // Har tarah ki extra double spacing ko single space kar dega
-        .trim();
+let qText = String(q.text || "");
+let cleanText = qText
+  .replace(/[±α]/g, 'alpha')           // 1. Pehle Alpha ko badlo
+  .replace(/√\s*/g, 'sqrt ')          // 2. Root symbol handle karo
+  .replace(/''/g, ' - ')               // 3. Double single quotes ko minus banao
+  .replace(/(\w|\d)\s*"\s*(\w|\d)/g, '$1 - $2') // 4. Beech wale quote ko minus banao (Q.6, 13, 16 fix)
+  .replace(/(\d)\s*"\s*(\d)/g, '$1 - $2')       // 5. Numbers ke beech ka quote fix (Extra safety)
+  .replace(/"/g, '')                   // 6. Ab jo faltu quotes bache unhe hatao
+  .replace(/\s+/g, ' ')                // 7. Extra spacing saaf karo
+  .trim();
 
       const qLine = `${qNum}. ${cleanText}`;
       const splitQ = doc.splitTextToSize(qLine, contentWidth);
