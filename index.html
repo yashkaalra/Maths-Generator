@@ -1446,7 +1446,9 @@ function renderMathText(doc, fullText, startX, startY, maxWidth) {
     s.questions.forEach(q => {
   qNum++;
   let txt = String(q.text)
-    .replace(/<(?!sup|\/sup)[^>]+>/g, '')
+  .replace(/<(?!sup|\/sup)[^>]+>/g, '')
+  .replace(/\^(\d+|\(-?\d+\))/g, '<sup>$1</sup>') // Ye line ^2 ya ^(-4) ko <sup> mein badal degi
+  .replace(/\^/g, '') // Bache huye faltu ^ ko hatane ke liye
     .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>')
     // Unicode fixes
     .replace(/₹/g, 'Rs.')
