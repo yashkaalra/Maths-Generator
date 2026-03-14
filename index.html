@@ -1298,53 +1298,115 @@ function selNone(){getCurrentChapters().forEach((_,i)=>{const el=document.getEle
 
 function downloadPDF(){
   if(!generatedPapers.length) return;
-
   const {jsPDF} = window.jspdf;
-  const paperEl = document.getElementById(`paper-${activePaperIndex}`);
-  if(!paperEl) return;
-
-  const ansEl = document.getElementById(`ans-${activePaperIndex}`);
-  const wasHidden = ansEl && ansEl.style.display === 'none';
+  const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
 
   const isICSE = currentCurriculum === 'icse8';
   const classLabel = isICSE ? 'Class VIII' : 'Class IX';
   const boardLabel = isICSE ? 'ICSE' : 'CBSE';
+  const paper = generatedPapers[activePaperIndex];
 
-  // Temporarily style paper for PDF capture
-  const originalStyle = paperEl.style.cssText;
-  paperEl.style.width = '900px';
-  paperEl.style.padding = '30px';
-  paperEl.style.boxSizing = 'border-box';
+  const margin = 15;
+  const pageW = 210;
+  const contentW = pageW - margin * 2;
+  let y = 18;
 
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4'
+  function checkPage(needed){
+    if(y + needed > 285){ doc.addPage(); y = 15; }
+  }
+
+  function writeLine(txt, fontSize, bold, indent){
+    doc.setFontSize(fontSize);
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    const lines = doc.splitTextToSize(txt, contentW - (indent||0));
+    checkPage(lines.length * (fontSize * 0.4 + 1));
+    doc.text(lines, margin + (indent||0), y);
+    y += lines.length * (fontSize * 0.4 + 1) + 1;
+  }
+
+  // Header
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(15);
+  doc.text(`${boardLabel} MATHEMATICS EXAMINATION`, pageW/2, y, {align:'center'});
+  y += 7;
+  doc.setFontSize(11);
+  doc.text(`${classLabel}  ·  Paper ${activePaperIndex+1}`, pageW/2, y, {align:'center'});
+  y += 7;
+  doc.setLineWidth(0.5);
+  doc.line(margin, y, pageW-margin, y);
+  y += 5;
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(10);
+  doc.text('Time: 3 Hours', margin, y);
+  doc.text('Maximum Marks: 80', pageW-margin, y, {align:'right'});
+  y += 5;
+  doc.setFontSize(9);
+  doc.setFont('helvetica','italic');
+  doc.text('General Instructions: Attempt all questions. Show all working.', margin, y);
+  y += 8;
+
+  let qNum = 0;
+  paper.sections.forEach(s => {
+    checkPage(14);
+    // Section header
+    doc.setFillColor(240,240,240);
+    doc.rect(margin, y-4, contentW, 7, 'F');
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(11);
+    doc.text(`Section ${s.name}  ${s.label}`, margin+2, y);
+    y += 7;
+
+    s.questions.forEach(q => {
+      qNum++;
+      // Strip HTML tags and clean text
+      let txt = String(q.text)
+        .replace(/<sup>(.*?)<\/sup>/g, '^$1')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>');
+      checkPage(10);
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(10.5);
+      const numTxt = `${qNum}.`;
+      doc.text(numTxt, margin, y);
+      doc.setFont('helvetica','normal');
+      const lines = doc.splitTextToSize(txt, contentW - 10);
+      checkPage(lines.length * 5 + 2);
+      doc.text(lines, margin+8, y);
+      y += lines.length * 5 + 2;
+    });
+    y += 3;
   });
 
-  doc.html(paperEl, {
-    callback: function(doc) {
-      paperEl.style.cssText = originalStyle;
-      if(ansEl && wasHidden) ansEl.style.display = 'none';
-      doc.save(`${boardLabel}_${classLabel.replace(' ','')}_Paper${activePaperIndex+1}.pdf`);
-    },
-    x: 5,
-    y: 5,
-    width: 200,
-    windowWidth: 900,
-    html2canvas: {
-      scale: 0.75,
-      useCORS: true,
-      logging: false,
-      letterRendering: true,
-      scrollX: 0,
-      scrollY: -window.scrollY,
-      width: 900,
-      windowWidth: 900
-    }
-  });
+  // Answer Key
+  if(showAnswers){
+    doc.addPage(); y = 15;
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(13);
+    doc.text('ANSWER KEY', pageW/2, y, {align:'center'});
+    y += 9;
+    let aN = 0;
+    paper.sections.forEach(s => {
+      s.questions.forEach(q => {
+        aN++;
+        let ans = String(q.answer||'')
+          .replace(/[²³⁴]/g, c=>({'²':'2','³':'3','⁴':'4'}[c]))
+          .replace(/[√∛]/g, c=>({'√':'sqrt','∛':'cbrt'}[c]))
+          .replace(/[×÷]/g, c=>({'×':'x','÷':'/'}[c]))
+          .replace(/[₹]/g,'Rs.');
+        checkPage(8);
+        doc.setFont('helvetica','bold');
+        doc.setFontSize(9.5);
+        doc.text(`${aN}.`, margin, y);
+        doc.setFont('helvetica','normal');
+        const aLines = doc.splitTextToSize(ans, contentW-8);
+        doc.text(aLines, margin+7, y);
+        y += aLines.length * 4.5 + 1.5;
+      });
+    });
+  }
+
+  doc.save(`${boardLabel}_${classLabel.replace(' ','')}_Paper${activePaperIndex+1}.pdf`);
 }
-buildChapterList();
 </script>
 </body>
 </html>
