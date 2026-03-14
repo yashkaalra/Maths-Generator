@@ -1419,16 +1419,47 @@ function downloadPDF() {
     if (y + needed > 285) { doc.addPage(); y = 15; }
   }
 
-  // Header
+// --- Final Professional Header (Date, Difficulty, Chapters) ---
   doc.setFont('helvetica', 'bold').setFontSize(15);
   doc.text(`${boardLabel} MATHEMATICS EXAMINATION`, pageW / 2, y, { align: 'center' });
   y += 7;
-  doc.setFontSize(11).text(`${classLabel}  ·  Paper ${activePaperIndex + 1}`, pageW / 2, y, { align: 'center' });
+
+  // 1. Calculations (Date aur Chapters)
+  const today = new Date().toLocaleDateString('en-GB'); 
+  const selectedChapters = getSelectedChapters();
+  let subTitle = `${classLabel}  ·  Paper ${activePaperIndex + 1}`;
+  
+  if (selectedChapters.length > 0 && selectedChapters.length < 4) {
+    subTitle += ` (${selectedChapters.join(', ')})`;
+  }
+
+  doc.setFontSize(10);
+  doc.text(subTitle, pageW / 2, y, { align: 'center' });
   y += 7;
+
   doc.setLineWidth(0.5);
   doc.line(margin, y, pageW - margin, y);
-  y += 10;
+  y += 6;
 
+  // 2. Info Row (Date | Difficulty | Marks)
+  doc.setFont('helvetica', 'bold').setFontSize(10);
+  doc.text(`Date: ${today}`, margin, y); // Left: Date
+  
+  // Center: Difficulty (Capitalize karke)
+  const diffLabel = currentDifficulty.charAt(0).toUpperCase() + currentDifficulty.slice(1);
+  doc.text(`Level: ${diffLabel}`, pageW / 2, y, { align: 'center' });
+  
+  doc.text(`Max Marks: `, pageW - margin, y, { align: 'right' }); // Right: Marks
+  y += 6;
+  
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Time: 3 Hours`, margin, y);
+  y += 8;
+
+  doc.setFontSize(9).setFont('helvetica', 'italic');
+  doc.text('General Instructions: Attempt all questions. Show all working. Figures to the right indicate marks.', margin, y);
+  y += 8;
+  
   let qNum = 0;
   paper.sections.forEach(s => {
     checkPage(15);
