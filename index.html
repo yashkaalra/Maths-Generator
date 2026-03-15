@@ -1626,48 +1626,31 @@ let cleanAns = aText
   
 
 function generatePapers(){
-  // 1. Selected chapters check karein
-  const chapters = getSelectedChapters();
- if(!chapters.length){
-  // Try rebuilding the list if DOM wasn't ready earlier
-  buildChapterList();
-  const retry = getSelectedChapters();
-  if(!retry.length){
+  // Get n first, before any branching
+  const n = Math.min(5, Math.max(1, parseInt(document.getElementById('numPapers').value) || 1));
+
+  // Get selected chapters; rebuild list if empty (DOM timing issue)
+  let chapters = getSelectedChapters();
+  if(!chapters.length){
+    buildChapterList();
+    chapters = getSelectedChapters();
+  }
+  if(!chapters.length){
     alert('Please select at least one chapter.');
     return;
   }
-  // use retry instead
-  generatedPapers = [];
-  for(let i = 0; i < n; i++) {
-    generatedPapers.push(buildPaper(retry));
-  }
-  activePaperIndex = 0; showAnswers = false;
-  renderAll();
-  return;
-}
 
-  // 2. Papers ki sankhya set karein (Max 5)
-  const n = Math.min(5, Math.max(1, parseInt(document.getElementById('numPapers').value) || 1));
-  
-  // 3. Purane papers saaf karein aur naye generate karein
   generatedPapers = [];
-  for(let i = 0; i < n; i++) {
+  for(let i = 0; i < n; i++){
     generatedPapers.push(buildPaper(chapters));
   }
-
-  // 4. Default settings reset karein
   activePaperIndex = 0;
   showAnswers = false;
-
-  // 5. UI Render karein (Tabs aur Paper dikhayein)
   renderAll();
 
-  // 6. Mobile Optimization: Screen ko smooth scroll karke paper par le jayein
-  if(window.innerWidth < 850) {
+  if(window.innerWidth < 850){
     const toolbar = document.getElementById('toolbar');
-    if(toolbar) {
-      toolbar.scrollIntoView({ behavior: 'smooth' });
-    }
+    if(toolbar) toolbar.scrollIntoView({ behavior: 'smooth' });
   }
 }
   
