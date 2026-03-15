@@ -1917,7 +1917,9 @@ function downloadPDF() {
   }
   doc.save(`${boardLabel}_${classLabel.replace(' ', '')}_Paper${activePaperIndex + 1}.pdf`);
 }
-buildChapterList();
+document.addEventListener('DOMContentLoaded', function() {
+  buildChapterList();
+});
 </script>
 </body>
 </html>
